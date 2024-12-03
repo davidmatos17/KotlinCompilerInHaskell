@@ -1,0 +1,9 @@
+fun main(){
+    var x = 5
+    val y = 10
+    if(x > y){
+        println("x is greater than y")
+    } else {
+        println("x is equal or greater than y")
+    }
+}

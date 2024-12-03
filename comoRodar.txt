@@ -1,0 +1,23 @@
+Para compilares o ficheiro Lexer.x
+-> alex Lexer.x
+
+
+Para compilares o ficheiro Parser.y
+-> happy Parser.y
+
+
+Para compilar o Main.hs
+-> ghc -o main Main.hs
+
+
+Para testares o ficheiro de input#.txt
+-> ./main < input#.txt
+
+
+Para compilar o CodeGen 
+-> ghc -o testCodegen TestCodeGen.hs
+
+
+Para testar o CodeGen
+-> ./testCodegen
+

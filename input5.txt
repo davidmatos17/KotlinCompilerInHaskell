@@ -1,0 +1,13 @@
+fun main(){
+    var contador = 1
+    while(contador <= 5){
+        print("Contagem: ")
+        println(contador)
+        contador = contador + 1
+    }
+    var frase = "ola mundo"
+    val str = "ola mundo again"
+    var z = readln()
+    print("ola mundo")
+    print(str)
+}
