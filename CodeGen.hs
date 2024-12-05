@@ -2,7 +2,7 @@
 module CodeGen where
 
 import AST
-import IC
+import IC 
 import Control.Monad.State
 import qualified Data.Map as Map
 
@@ -24,7 +24,7 @@ type CodeGen = State CodeGenState
 newTemp :: CodeGen String
 newTemp = do
     state <- get
-    let temp = "t" ++ show (tempCount state)
+    let temp = "$t" ++ show (tempCount state)
     put state { tempCount = tempCount state + 1 }
     return temp
 
@@ -51,7 +51,7 @@ transExpr (Num n) = do
 
 transExpr (Str s) = do
     temp <- newTemp
-    emit (MOVE temp ("\"" ++ s ++ "\""))
+    emit (MOVE temp s)
     return temp
 
 transExpr MyTrue = do
@@ -240,3 +240,36 @@ generateCode stmts =
     let initialState = CodeGenState 0 0 [] Map.empty
         finalState = execState (mapM_ transStmt stmts) initialState
     in instructions finalState
+
+
+
+-- Assuming generateCode produces an intermediate representation (IR)
+generateAssembly :: [Instr] -> [String]
+generateAssembly irList = map irToAssembly irList
+
+irToAssembly :: Instr -> String
+irToAssembly (MOVE dest src) = "move " ++ dest ++ ", " ++ src
+irToAssembly (MOVEI dest val) = "lui " ++ dest ++ ", " ++ show val
+irToAssembly (ADD dest src1 src2) = "add " ++ dest ++ ", " ++ src1 ++ ", " ++ src2
+irToAssembly (SUB dest src1 src2) = "sub " ++ dest ++ ", " ++ src1 ++ ", " ++ src2
+irToAssembly (MULT dest src1 src2) = "mul " ++ dest ++ ", " ++ src1 ++ ", " ++ src2
+irToAssembly (DIV dest src1 src2) = "div " ++ dest ++ ", " ++ src1 ++ ", " ++ src2
+irToAssembly (MOD dest src1 src2) = "rem " ++ dest ++ ", " ++ src1 ++ ", " ++ src2
+irToAssembly (AND dest src1 src2) = "and " ++ dest ++ ", " ++ src1 ++ ", " ++ src2
+irToAssembly (OR dest src1 src2) = "or " ++ dest ++ ", " ++ src1 ++ ", " ++ src2
+irToAssembly (NOT dest src) = "not " ++ dest ++ ", " ++ src
+irToAssembly (COND src1 op src2 lblTrue lblFalse) =
+    let opStr = case op of
+            Eq   -> "beq"
+            Neq  -> "bne"
+            Lt   -> "blt"
+            LtEq -> "ble"
+            Gt   -> "bgt"
+            GtEq -> "bge"
+    in opStr ++ " " ++ src1 ++ ", " ++ src2 ++ ", " ++ lblTrue ++ "\n" ++
+       "j " ++ lblFalse
+irToAssembly (JUMP lbl) = "j " ++ lbl
+irToAssembly (LABEL lbl) = lbl ++ ":"
+irToAssembly (PRINTI src) = "print " ++ src
+irToAssembly (PRINTLNI src) = "printl " ++ src
+irToAssembly (READLNI dest) = "readl " ++ dest
