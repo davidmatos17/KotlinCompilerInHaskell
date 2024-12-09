@@ -5,7 +5,7 @@ import Control.Monad.State
 
 -- Example program: x = 10; y = 20; z = x + y; print(z);
 exampleProgram :: Stmt
-exampleProgram = Block [Var "i" (Num 0)]
+exampleProgram = (Block [Var "x" (Num 4),Var "y" (Num 3),Var "soma" (BinOp Add (Ident "x") (Ident "y"))])
 -- Main function to run the code generation
 -- main :: IO ()
 -- main = do
@@ -16,6 +16,8 @@ exampleProgram = Block [Var "i" (Num 0)]
 --     let instructions = parseInstruction [generatedCode]
 --     mapM_ print instructions
 
+
+ 
 main :: IO ()
 main = do
     let irCode = generateCode [exampleProgram]  -- Generate IR code

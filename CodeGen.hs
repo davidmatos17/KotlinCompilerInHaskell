@@ -12,6 +12,7 @@ type SymTable = Map.Map String String
 -- Code generation state
 data CodeGenState = CodeGenState
     { tempCount :: Int
+    , savedCount :: Int
     , labelCount :: Int
     , instructions :: [Instr]
     , symTable :: SymTable
@@ -26,6 +27,13 @@ newTemp = do
     state <- get
     let temp = "$t" ++ show (tempCount state)
     put state { tempCount = tempCount state + 1 }
+    return temp
+
+newSaveTemp :: CodeGen String
+newSaveTemp = do
+    state <- get
+    let temp = "$s" ++ show (savedCount state)
+    put state { savedCount = savedCount state + 1 }
     return temp
 
 -- Generate a new label
@@ -50,7 +58,7 @@ transExpr (Num n) = do
     return temp
 
 transExpr (Str s) = do
-    temp <- newTemp
+    temp <- newSaveTemp
     emit (MOVE temp s)
     return temp
 
@@ -168,11 +176,13 @@ transStmt (Assign name expr) = do
 
 transStmt (Var name expr) = do
     exprTemp <- transExpr expr
-    emit (MOVE name exprTemp)
+    saveTemp <- newSaveTemp  -- Use saved register
+    emit (MOVE saveTemp exprTemp)  -- Store in saved register
 
 transStmt (Val name expr) = do
     exprTemp <- transExpr expr
-    emit (MOVE name exprTemp)
+    saveTemp <- newSaveTemp  -- Use saved register
+    emit (MOVE saveTemp exprTemp)  -- Store in saved register
 
 transStmt (VarReadLn name ReadLn) = do
     temp <- newTemp
@@ -237,39 +247,8 @@ transStmt (Block stmts) = mapM_ transStmt stmts
 -- Entry point for code generation
 generateCode :: [Stmt] -> [Instr]
 generateCode stmts =
-    let initialState = CodeGenState 0 0 [] Map.empty
+    let initialState = CodeGenState 0 0 0 [] Map.empty
         finalState = execState (mapM_ transStmt stmts) initialState
     in instructions finalState
 
 
-
--- Assuming generateCode produces an intermediate representation (IR)
-generateAssembly :: [Instr] -> [String]
-generateAssembly irList = map irToAssembly irList
-
-irToAssembly :: Instr -> String
-irToAssembly (MOVE dest src) = "move " ++ dest ++ ", " ++ src
-irToAssembly (MOVEI dest val) = "lui " ++ dest ++ ", " ++ show val
-irToAssembly (ADD dest src1 src2) = "add " ++ dest ++ ", " ++ src1 ++ ", " ++ src2
-irToAssembly (SUB dest src1 src2) = "sub " ++ dest ++ ", " ++ src1 ++ ", " ++ src2
-irToAssembly (MULT dest src1 src2) = "mul " ++ dest ++ ", " ++ src1 ++ ", " ++ src2
-irToAssembly (DIV dest src1 src2) = "div " ++ dest ++ ", " ++ src1 ++ ", " ++ src2
-irToAssembly (MOD dest src1 src2) = "rem " ++ dest ++ ", " ++ src1 ++ ", " ++ src2
-irToAssembly (AND dest src1 src2) = "and " ++ dest ++ ", " ++ src1 ++ ", " ++ src2
-irToAssembly (OR dest src1 src2) = "or " ++ dest ++ ", " ++ src1 ++ ", " ++ src2
-irToAssembly (NOT dest src) = "not " ++ dest ++ ", " ++ src
-irToAssembly (COND src1 op src2 lblTrue lblFalse) =
-    let opStr = case op of
-            Eq   -> "beq"
-            Neq  -> "bne"
-            Lt   -> "blt"
-            LtEq -> "ble"
-            Gt   -> "bgt"
-            GtEq -> "bge"
-    in opStr ++ " " ++ src1 ++ ", " ++ src2 ++ ", " ++ lblTrue ++ "\n" ++
-       "j " ++ lblFalse
-irToAssembly (JUMP lbl) = "j " ++ lbl
-irToAssembly (LABEL lbl) = lbl ++ ":"
-irToAssembly (PRINTI src) = "print " ++ src
-irToAssembly (PRINTLNI src) = "printl " ++ src
-irToAssembly (READLNI dest) = "readl " ++ dest

@@ -1,0 +1,3 @@
+Main (Block [Var "a" (Num 10),Val "b" (Num 20),
+Var "c" (BinOp Add (Ident "a") (BinOp Mul (Ident "b") (Num 2))),
+Print (PrintExp (Str "Resultado: ")),Println (PrintExp (Ident "c"))])

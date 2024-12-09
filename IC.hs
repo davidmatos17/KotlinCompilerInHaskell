@@ -15,6 +15,8 @@ data Instr
     | MOD Temp Temp Temp
     | AND Temp Temp Temp
     | OR Temp Temp Temp
+    | BNE Temp Temp Label
+    | BEQ Temp Temp Label
     | BINOP Temp Op Temp Temp  -- Binary operations
     | NOT Temp Temp  -- Not operation
     | COND Temp Op Temp Label Label  -- Conditional jump
