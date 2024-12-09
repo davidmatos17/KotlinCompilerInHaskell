@@ -1,11 +1,40 @@
 module Main where
-import Lexer
-import Parser
-import AST
+
+import Lexer         -- Your lexical analyzer
+import Parser        -- Your parser
+import AST           -- Abstract Syntax Tree representation
+import CodeGen       -- Intermediate code generation
+import Control.Monad.State
+import qualified Data.Map as Map
+import MIPS 
 
 main :: IO ()
 main = do
+    -- Step 1: Read program input (e.g., Kotlin-like code)
+    putStrLn "Enter your program (end with Ctrl+D):"
     txt <- getContents
-    print(parser $ alexScanTokens txt)
-   
     
+    -- Step 2: Lexical Analysis
+    let tokens = alexScanTokens txt
+    putStrLn "\nLexical Analysis (Tokens):"
+    print tokens
+
+    -- Step 3: Parsing
+    let ast = parser tokens
+    putStrLn "\nParsed Abstract Syntax Tree (AST):"
+    print ast
+
+    -- Step 4: Intermediate Code Generation
+    let irCode = generateCode [ast]
+    putStrLn "\nGenerated Intermediate Code (IR):"
+    mapM_ print irCode
+
+    -- Step 5: Assembly Code Generation
+    let assemblyCode = assembleMIPS irCode
+    putStrLn "\nGenerated Assembly Code:"
+    putStrLn assemblyCode
+
+    --Step 6: Binary Code Generation (Optional, Uncomment to Enable)
+    -- putStrLn "\nGenerated Binary Code:"
+    -- let binaryCode = map (encodeInstruction . parseInstruction) assemblyCode
+    -- mapM_ putStrLn binaryCode

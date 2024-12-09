@@ -6,6 +6,6 @@ comentario
 
 fun main() {
     var x = 4
-    x = 3
-    var x = 5 + 6
+    var y = 3
+    var soma = x + y
 }

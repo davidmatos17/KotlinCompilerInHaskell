@@ -1,7 +1,8 @@
-fun main(){
-    var a = 10
-    val b = 20
-    var c = a + b * 2
-    print("Resultado: ")
-    println(c)
+fun main() {
+    var number = 10
+    if (number > 0) {
+        println("The number is positive.")
+    } else {
+        println("The number is negative or zero.")
+    }
 }
