@@ -16,6 +16,7 @@ data CodeGenState = CodeGenState
     , labelCount :: Int
     , instructions :: [Instr]
     , symTable :: SymTable
+    , stringLabels :: Map.Map String String
     } deriving (Show)
 
 -- Monad definition for code generation
@@ -50,6 +51,21 @@ emit instr = do
     state <- get
     put state { instructions = instructions state ++ [instr] }
 
+
+addString :: String -> CodeGen String
+addString str = do
+    state <- get
+    let labels = stringLabels state
+    case Map.lookup str labels of
+        Just label -> return str  -- String already has a label
+        Nothing -> do
+            let label = "msg" ++ show (Map.size labels)
+            put state { stringLabels = Map.insert str label labels }
+            return str
+
+
+
+
 -- Translate expressions
 transExpr :: Expr -> CodeGen Temp
 transExpr (Num n) = do
@@ -58,9 +74,8 @@ transExpr (Num n) = do
     return temp
 
 transExpr (Str s) = do
-    temp <- newSaveTemp
-    emit (MOVE temp s)
-    return temp
+    label <- addString s  -- Add string to .data and get its label
+    return label
 
 transExpr MyTrue = do
     temp <- newTemp
@@ -172,7 +187,8 @@ transExpr (Array name index) = do
 transStmt :: Stmt -> CodeGen ()
 transStmt (Assign name expr) = do
     exprTemp <- transExpr expr
-    emit (MOVE name exprTemp)
+    saveTemp <- newSaveTemp  -- Use saved register
+    emit (MOVE saveTemp exprTemp)
 
 transStmt (Var name expr) = do
     exprTemp <- transExpr expr
@@ -228,11 +244,11 @@ transStmt (While cond body) = do
 
 transStmt (Print (PrintExp expr)) = do
     exprTemp <- transExpr expr
-    emit (PRINTI exprTemp)
+    emit (PRINTI exprTemp)  -- exprTemp is the string label
 
 transStmt (Println (PrintExp expr)) = do
     exprTemp <- transExpr expr
-    emit (PRINTLNI exprTemp)
+    emit (PRINTLNI exprTemp)  -- exprTemp is the string label
 
 transStmt (ExprStmt expr) = do
     _ <- transExpr expr
@@ -243,11 +259,10 @@ transStmt (Fun _ _) = return ()  -- Handling for functions, can be extended if n
 transStmt (Main stmt) = transStmt stmt
 
 transStmt (Block stmts) = mapM_ transStmt stmts
-
 -- Entry point for code generation
 generateCode :: [Stmt] -> [Instr]
 generateCode stmts =
-    let initialState = CodeGenState 0 0 0 [] Map.empty
+    let initialState = CodeGenState 0 0 0 [] Map.empty Map.empty
         finalState = execState (mapM_ transStmt stmts) initialState
     in instructions finalState
 

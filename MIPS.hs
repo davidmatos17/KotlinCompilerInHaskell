@@ -114,9 +114,11 @@ irToMips (PRINTI src) = unlines
     ]
 
 irToMips (PRINTLNI src) = unlines
-    [ irToMips (PRINTI src)
-    , "li $a0, 10"
-    , "li $v0, 11"
+    [ "la $a0, " ++ src -- load the address of the string
+    , "li $v0, 4"        -- MIPS syscall to print string
+    , "syscall"
+    , "la $a0, newline"  -- Print newline
+    , "li $v0, 4"
     , "syscall"
     ]
 
@@ -126,19 +128,56 @@ irToMips (READLNI dest) = unlines
     , "move " ++ dest ++ ", $v0"
     ]
 
+
+extractDataSection :: [Instr] -> String
+extractDataSection irList =
+    let
+        -- Helper to gather strings from PRINTI and PRINTLNI
+        gatherStrings :: Instr -> [String]
+        gatherStrings (PRINTI src) = [src]
+        gatherStrings (PRINTLNI src) = [src]
+        gatherStrings _ = []
+
+        -- Collect unique strings and assign labels
+        allStrings = concatMap gatherStrings irList
+        uniqueStrings = zip (removeDuplicates allStrings) (map (\i -> "str" ++ show i) [0..])
+
+        -- Generate .data declarations for each string
+        dataDeclarations = map (\(content, label) -> label ++ ": .asciiz \"" ++ content ++ "\"") uniqueStrings
+    in
+        unlines dataDeclarations
+
+-- Helper to remove duplicates from a list
+removeDuplicates :: (Ord a) => [a] -> [a]
+removeDuplicates = go Map.empty
+  where
+    go _ [] = []
+    go seen (x:xs)
+        | x `Map.member` seen = go seen xs
+        | otherwise = x : go (Map.insert x True seen) xs
+
+
 -- Generate MIPS assembly from IR
 generateMIPS :: [Instr] -> [String]
 generateMIPS irList = map irToMips irList
 
--- Create full MIPS assembly program with a text segment
 assembleMIPS :: [Instr] -> String
-assembleMIPS irList = unlines $
-    [ ".data"
-    , "newline: .asciiz \"\\n\""
-    , ".text"
-    , ".globl main"
-    , "main:"
-    ] ++ generateMIPS irList ++
-    [ "li $v0, 10"  -- syscall to exit program
-    , "syscall"
-    ]
+assembleMIPS irList =
+    let
+        -- Generate the .data section
+        dataSection = extractDataSection irList
+
+        -- Generate the .text section from IR instructions
+        textSection = map irToMips irList
+    in
+        unlines $
+        [ ".data"                     -- Start of data section
+        , dataSection
+        , "newline: .asciiz \"\\n\""  -- Add newline string for convenience
+        , ".text"                     -- Start of text section
+        , ".globl main"               -- Entry point
+        , "main:"
+        ] ++ textSection ++
+        [ "li $v0, 10"                -- Exit syscall
+        , "syscall"
+        ]
