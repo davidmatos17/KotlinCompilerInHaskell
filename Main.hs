@@ -34,7 +34,8 @@ main = do
     putStrLn "\nGenerated Assembly Code:"
     putStrLn assemblyCode
 
-    --Step 6: Binary Code Generation (Optional, Uncomment to Enable)
-    -- putStrLn "\nGenerated Binary Code:"
-    -- let binaryCode = map (encodeInstruction . parseInstruction) assemblyCode
-    -- mapM_ putStrLn binaryCode
+    -- Step 6: Save output to a .asm file
+    let outputPath = "output.asm"
+    writeFile outputPath assemblyCode
+    putStrLn $ "Assembly code has been saved to " ++ outputPath
+
